@@ -56,11 +56,29 @@
             backdrop-filter: blur(24px);
         }
 
-        /* Enhanced hover effects */
-        .hover\:scale-105:hover {
+        /* Enhanced hover effects - Fixed */
+        .workflow-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .workflow-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15);
+        }
+        
+        .workflow-card:active {
+            transform: translateY(-2px) scale(1.01);
+        }
+        
+        .btn-hover {
+            transition: all 0.2s ease;
+        }
+        
+        .btn-hover:hover {
             transform: scale(1.05);
         }
-        .active\:scale-95:active {
+        
+        .btn-hover:active {
             transform: scale(0.95);
         }
 
