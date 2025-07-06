@@ -868,12 +868,20 @@
             }, 100);
         }
 
-        // Close selectable modal
-        function closeSelectableModal() {
-            const modal = document.getElementById('selectableModal');
-            if (modal) {
-                modal.remove();
+        function viewWorkflow(id) {
+            const workflow = workflows.find(w => w.id === id);
+            if (workflow) {
+                currentViewingWorkflow = workflow;
+                document.getElementById('modalTitle').textContent = workflow.title;
+                document.getElementById('modalFilename').textContent = workflow.filename;
+                document.getElementById('modalContent').textContent = JSON.stringify(workflow.content, null, 2);
+                document.getElementById('modal').classList.remove('hidden');
             }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            currentViewingWorkflow = null;
         }
 
         // Close modal when clicking outside
