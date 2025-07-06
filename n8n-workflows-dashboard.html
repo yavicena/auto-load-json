@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N8N Workflows Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        /* Line clamp utilities */
+        .line-clamp-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Smooth transitions */
+        * {
+            transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 200ms;
+        }
+
+        /* Custom animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Backdrop blur for better glass effect */
+        .backdrop-blur-xl {
+            backdrop-filter: blur(24px);
+        }
+
+        /* Enhanced hover effects */
+        .hover\:scale-105:hover {
+            transform: scale(1.05);
+        }
+        .active\:scale-95:active {
+            transform: scale(0.95);
+        }
+
+        /* Custom background pattern */
+        .bg-pattern {
+            background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.02) 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+
+        /* Drag and drop styles */
+        .drag-over {
+            border: 2px dashed #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .file-input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Modal animations */
+        .modal-enter {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        .modal-enter-active {
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity 300ms, transform 300ms;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-pattern opacity-20"></div>
+    
+    <!-- Header -->
+    <header class="relative z-10 bg-slate-800/50 backdrop-blur-xl border-b border-slate-700/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                            N8N Workflows
+                        </h1>
+                        <p class="text-slate-400 text-sm">Offline workflow dashboard</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Load Files Button -->
+                    <button onclick="document.getElementById('fileInput').click()" 
+                            class="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all duration-200 border border-green-500/50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span class="text-sm">Load JSON Files</span>
+                    </button>
+                    
+                    <!-- Clear Button -->
+                    <button onclick="clearWorkflows()" 
+                            class="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all duration-200 border border-red-500/50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span class="text-sm">Clear All</span>
+                    </button>
+                    
+                    <!-- Search Bar -->
+                    <div class="relative max-w-md w-full">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input id="searchInput" type="text" 
+                               class="block w-full pl-10 pr-3 py-2 border border-slate-600 rounded-xl bg-slate-800/50 backdrop-blur-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                               placeholder="Search workflows..." 
+                               onkeyup="filterWorkflows()">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- File Input (Hidden) -->
+    <input type="file" id="fileInput" class="file-input" multiple accept=".json" onchange="handleFileSelect(event)">
+
+    <!-- Main Content -->
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Stats Cards -->
+        <div id="statsSection" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-400 text-sm font-medium">Total Workflows</p>
+                        <p id="totalWorkflows" class="text-3xl font-bold text-white">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-400 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-400 text-sm font-medium">Active Workflows</p>
+                        <p id="activeWorkflows" class="text-3xl font-bold text-white">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-400 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-400 text-sm font-medium">Inactive Workflows</p>
+                        <p id="inactiveWorkflows" class="text-3xl font-bold text-white">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-400 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-400 text-sm font-medium">Total Nodes</p>
+                        <p id="totalNodes" class="text-3xl font-bold text-white">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-400 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Indicators -->
+        <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 mb-8">
+            <h3 class="text-lg font-semibold text-white mb-4">Status Indicators</h3>
+            <div class="flex flex-wrap gap-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-slate-300">Active - Workflow will execute when triggered</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span class="text-sm text-slate-300">Inactive - Workflow is disabled</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span class="text-sm text-slate-300">Complex - Workflow has multiple integrations</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drag and Drop Area -->
+        <div id="dropArea" class="border-2 border-dashed border-slate-600 rounded-2xl p-8 text-center mb-8 bg-slate-800/30 hover:bg-slate-800/50 transition-all duration-300">
+            <svg class="w-12 h-12 text-slate-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <h3 class="text-lg font-semibold text-white mb-2">Drop N8N Workflow Files Here</h3>
+            <p class="text-slate-400 mb-4">Drag and drop your JSON workflow files, or click "Load JSON Files" to browse</p>
+            <button onclick="document.getElementById('fileInput').click()" 
+                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2 px-4 rounded-xl transition-all duration-200">
+                Browse Files
+            </button>
+        </div>
+
+        <!-- Workflows Grid -->
+        <div id="workflowsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Workflow cards will be inserted here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-12">
+            <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <h3 class="text-lg font-semibold text-slate-400 mb-2">No workflows loaded</h3>
+            <p class="text-slate-500 mb-4">Upload your N8N workflow JSON files to get started</p>
+            <div class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 max-w-md mx-auto">
+                <p class="text-sm text-slate-400 mb-2">Supported formats:</p>
+                <div class="text-left text-sm text-slate-300">
+                    <div>• N8N workflow JSON files</div>
+                    <div>• Multiple file selection supported</div>
+                    <div>• Drag and drop enabled</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for viewing workflow JSON -->
+    <div id="modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-6 border-b border-slate-700">
+                <div>
+                    <h3 id="modalTitle" class="text-xl font-semibold text-white">Workflow JSON</h3>
+                    <p id="modalFilename" class="text-slate-400 text-sm"></p>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Content -->
+            <div class="p-6 max-h-[70vh] overflow-y-auto">
+                <pre id="modalContent" class="bg-slate-900 text-slate-300 p-4 rounded-xl overflow-x-auto text-sm whitespace-pre-wrap"></pre>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end space-x-3 p-6 border-t border-slate-700">
+                <button onclick="copyModalContent()" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium py-2 px-4 rounded-xl transition-all duration-200 flex items-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span>Copy JSON</span>
+                </button>
+                <button onclick="closeModal()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium py-2 px-4 rounded-xl transition-all duration-200">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let workflows = [];
+        let currentViewingWorkflow = null;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+            updateUI();
+        });
+
+        // Setup drag and drop functionality
+        function setupDragAndDrop() {
+            const dropArea = document.getElementById('dropArea');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+
+            dropArea.addEventListener('drop', handleDrop, false);
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            document.getElementById('dropArea').classList.add('drag-over');
+        }
+
+        function unhighlight(e) {
+            document.getElementById('dropArea').classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            [...files].forEach(file => {
+                if (file.type === 'application/json' || file.name.endsWith('.json')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const workflowData = JSON.parse(e.target.result);
+                            addWorkflow(file.name, workflowData);
+                        } catch (error) {
+                            console.error('Error parsing JSON file:', file.name, error);
+                            alert(`Error parsing ${file.name}: ${error.message}`);
+                        }
+                    };
+                    reader.readAsText(file);
+                } else {
+                    alert(`File ${file.name} is not a JSON file`);
+                }
+            });
+        }
+
+        function addWorkflow(filename, data) {
+            // Extract workflow information
+            const title = data.name || filename.replace('.json', '').replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const nodes = data.nodes || [];
+            const nodeCount = nodes.length;
+            
+            // Extract node types for description
+            const nodeTypes = [];
+            nodes.forEach(node => {
+                if (node.type) {
+                    const nodeType = node.type.split('.').pop() || 'Unknown';
+                    if (!nodeTypes.includes(nodeType)) {
+                        nodeTypes.push(nodeType);
+                    }
+                }
+            });
+
+            // Generate description
+            let description = `Workflow with ${nodeCount} nodes`;
+            if (nodeTypes.length > 0) {
+                const mainTypes = nodeTypes.filter(t => !['scheduleTrigger', 'webhook'].includes(t));
+                if (mainTypes.length > 0) {
+                    description += ` including ${mainTypes.slice(0, 3).join(', ')}`;
+                    if (mainTypes.length > 3) {
+                        description += ` and ${mainTypes.length - 3} more`;
+                    }
+                }
+            }
+
+            // Determine if workflow is active
+            const active = data.active !== false; // Default to true if not specified
+
+            const workflow = {
+                id: Date.now() + Math.random(), // Simple unique ID
+                filename: filename,
+                title: title,
+                description: description,
+                active: active,
+                nodes: nodeCount,
+                nodeTypes: nodeTypes,
+                content: data,
+                createdAt: data.createdAt,
+                updatedAt: data.updatedAt
+            };
+
+            workflows.push(workflow);
+            updateUI();
+        }
+
+        function clearWorkflows() {
+            if (workflows.length > 0 && confirm('Are you sure you want to clear all workflows?')) {
+                workflows = [];
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            updateStats();
+            renderWorkflows();
+        }
+
+        function updateStats() {
+            const total = workflows.length;
+            const active = workflows.filter(w => w.active).length;
+            const inactive = total - active;
+            const totalNodes = workflows.reduce((sum, w) => sum + w.nodes, 0);
+
+            document.getElementById('totalWorkflows').textContent = total;
+            document.getElementById('activeWorkflows').textContent = active;
+            document.getElementById('inactiveWorkflows').textContent = inactive;
+            document.getElementById('totalNodes').textContent = totalNodes;
+        }
+
+        function renderWorkflows() {
+            const grid = document.getElementById('workflowsGrid');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (workflows.length === 0) {
+                grid.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            
+            const filteredWorkflows = filterWorkflowsBySearch();
+            
+            if (filteredWorkflows.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <svg class="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <h3 class="text-lg font-semibold text-slate-400 mb-2">No matching workflows</h3>
+                        <p class="text-slate-500">Try adjusting your search terms or clear the search to see all workflows.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = filteredWorkflows.map(workflow => `
+                <div class="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/10">
+                    <!-- Workflow Header -->
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 rounded-full ${workflow.active ? 'bg-green-500 animate-pulse' : 'bg-red-500'}"></div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-white line-clamp-1">${workflow.title}</h3>
+                                <p class="text-sm text-slate-400">${workflow.filename}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-1 text-xs text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            <span>${workflow.nodes}</span>
+                        </div>
+                    </div>
+
+                    <!-- Workflow Description -->
+                    <p class="text-slate-300 text-sm mb-6 line-clamp-2">${workflow.description}</p>
+
+                    <!-- Workflow Meta -->
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center space-x-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-medium ${workflow.active ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}">
+                                ${workflow.active ? 'Active' : 'Inactive'}
+                            </span>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                ${workflow.nodes === 1 ? '1 Node' : `${workflow.nodes} Nodes`}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-3">
+                        <button onclick="copyWorkflow(${workflow.id})" class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium py-2 px-4 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 hover:scale-105 active:scale-95">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <span>Copy</span>
+                        </button>
+                        
+                        <button onclick="viewWorkflow(${workflow.id})" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white text-sm font-medium py-2 px-4 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 hover:scale-105 active:scale-95">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <span>View</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterWorkflows() {
+            renderWorkflows();
+        }
+
+        function filterWorkflowsBySearch() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (!searchTerm) return workflows;
+
+            return workflows.filter(workflow => 
+                workflow.title.toLowerCase().includes(searchTerm) ||
+                workflow.description.toLowerCase().includes(searchTerm) ||
+                workflow.filename.toLowerCase().includes(searchTerm) ||
+                (workflow.nodeTypes && workflow.nodeTypes.some(type => 
+                    type.toLowerCase().includes(searchTerm)
+                ))
+            );
+        }
+
+        function copyWorkflow(id) {
+            const workflow = workflows.find(w => w.id === id);
+            if (workflow) {
+                const jsonString = JSON.stringify(workflow.content, null, 2);
+                navigator.clipboard.writeText(jsonString).then(() => {
+                    // Visual feedback
+                    const button = event.target.closest('button');
+                    const originalContent = button.innerHTML;
+                    button.innerHTML = `
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Copied!</span>
+                    `;
+                    setTimeout(() => {
+                        button.innerHTML = originalContent;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    alert('Failed to copy to clipboard');
+                });
+            }
+        }
+
+        function viewWorkflow(id) {
+            const workflow = workflows.find(w => w.id === id);
+            if (workflow) {
+                currentViewingWorkflow = workflow;
+                document.getElementById('modalTitle').textContent = workflow.title;
+                document.getElementById('modalFilename').textContent = workflow.filename;
+                document.getElementById('modalContent').textContent = JSON.stringify(workflow.content, null, 2);
+                document.getElementById('modal').classList.remove('hidden');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            currentViewingWorkflow = null;
+        }
+
+        function copyModalContent() {
+            if (currentViewingWorkflow) {
+                const jsonString = JSON.stringify(currentViewingWorkflow.content, null, 2);
+                navigator.clipboard.writeText(jsonString).then(() => {
+                    const button = event.target.closest('button');
+                    const originalContent = button.innerHTML;
+                    button.innerHTML = `
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Copied!</span>
+                    `;
+                    setTimeout(() => {
+                        button.innerHTML = originalContent;
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    alert('Failed to copy to clipboard');
+                });
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
