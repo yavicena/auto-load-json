@@ -281,14 +281,28 @@
         <!-- Drag and Drop Area -->
         <div id="dropArea" class="border-2 border-dashed border-slate-600 rounded-2xl p-8 text-center mb-8 bg-slate-800/30 hover:bg-slate-800/50 transition-all duration-300">
             <svg class="w-12 h-12 text-slate-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z" />
             </svg>
-            <h3 class="text-lg font-semibold text-white mb-2">Drop N8N Workflow Files Here</h3>
-            <p class="text-slate-400 mb-4">Drag and drop your JSON workflow files, or click "Load JSON Files" to browse</p>
-            <button onclick="document.getElementById('fileInput').click()" 
-                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2 px-4 rounded-xl transition-all duration-200">
-                Browse Files
-            </button>
+            <h3 class="text-lg font-semibold text-white mb-2">Auto-Load N8N Workflows</h3>
+            <p class="text-slate-400 mb-4">Select your n8n_workflows folder once, or drag files here manually</p>
+            <div class="flex justify-center space-x-4">
+                <button onclick="selectWorkflowFolder()" 
+                        class="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-medium py-2 px-6 rounded-xl transition-all duration-200 btn-hover">
+                    Select n8n_workflows Folder
+                </button>
+                <button onclick="document.getElementById('fileInput').click()" 
+                        class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2 px-6 rounded-xl transition-all duration-200 btn-hover">
+                    Browse Files
+                </button>
+            </div>
+            <div id="folderStatus" class="mt-4 text-sm text-slate-500" style="display: none;">
+                <span class="inline-flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span id="folderPath">Folder connected</span>
+                </span>
+            </div>
         </div>
 
         <!-- Workflows Grid -->
