@@ -712,61 +712,167 @@
             const workflow = workflows.find(w => w.id === id);
             if (workflow) {
                 const jsonString = JSON.stringify(workflow.content, null, 2);
-                navigator.clipboard.writeText(jsonString).then(() => {
-                    // Visual feedback
-                    const button = event.target.closest('button');
-                    const originalContent = button.innerHTML;
-                    button.innerHTML = `
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>Copied!</span>
-                    `;
-                    setTimeout(() => {
-                        button.innerHTML = originalContent;
-                    }, 2000);
-                }).catch(err => {
-                    console.error('Failed to copy: ', err);
-                    alert('Failed to copy to clipboard');
-                });
+                
+                // Try modern clipboard API first
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(jsonString).then(() => {
+                        showCopySuccess(event.target.closest('button'));
+                    }).catch(err => {
+                        console.error('Clipboard API failed, using fallback:', err);
+                        fallbackCopyToClipboard(jsonString, event.target.closest('button'));
+                    });
+                } else {
+                    // Use fallback method for file:// URLs or insecure contexts
+                    fallbackCopyToClipboard(jsonString, event.target.closest('button'));
+                }
             }
-        }
-
-        function viewWorkflow(id) {
-            const workflow = workflows.find(w => w.id === id);
-            if (workflow) {
-                currentViewingWorkflow = workflow;
-                document.getElementById('modalTitle').textContent = workflow.title;
-                document.getElementById('modalFilename').textContent = workflow.filename;
-                document.getElementById('modalContent').textContent = JSON.stringify(workflow.content, null, 2);
-                document.getElementById('modal').classList.remove('hidden');
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('modal').classList.add('hidden');
-            currentViewingWorkflow = null;
         }
 
         function copyModalContent() {
             if (currentViewingWorkflow) {
                 const jsonString = JSON.stringify(currentViewingWorkflow.content, null, 2);
-                navigator.clipboard.writeText(jsonString).then(() => {
-                    const button = event.target.closest('button');
-                    const originalContent = button.innerHTML;
-                    button.innerHTML = `
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span>Copied!</span>
-                    `;
-                    setTimeout(() => {
-                        button.innerHTML = originalContent;
-                    }, 2000);
-                }).catch(err => {
-                    console.error('Failed to copy: ', err);
-                    alert('Failed to copy to clipboard');
-                });
+                
+                // Try modern clipboard API first
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(jsonString).then(() => {
+                        showCopySuccess(event.target.closest('button'));
+                    }).catch(err => {
+                        console.error('Clipboard API failed, using fallback:', err);
+                        fallbackCopyToClipboard(jsonString, event.target.closest('button'));
+                    });
+                } else {
+                    // Use fallback method for file:// URLs or insecure contexts
+                    fallbackCopyToClipboard(jsonString, event.target.closest('button'));
+                }
+            }
+        }
+
+        // Fallback copy method for file:// URLs and older browsers
+        function fallbackCopyToClipboard(text, button) {
+            try {
+                // Create a temporary textarea element
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-999999px';
+                textarea.style.top = '-999999px';
+                document.body.appendChild(textarea);
+                
+                // Select and copy the text
+                textarea.focus();
+                textarea.select();
+                
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                
+                if (successful) {
+                    showCopySuccess(button);
+                } else {
+                    showCopyError(button, text);
+                }
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                showCopyError(button, text);
+            }
+        }
+
+        // Show copy success feedback
+        function showCopySuccess(button) {
+            const originalContent = button.innerHTML;
+            button.classList.add('bg-green-600', 'hover:bg-green-700');
+            button.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800', 'from-purple-600', 'to-purple-700', 'hover:from-purple-700', 'hover:to-purple-800');
+            button.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Copied!</span>
+            `;
+            setTimeout(() => {
+                button.innerHTML = originalContent;
+                button.classList.remove('bg-green-600', 'hover:bg-green-700');
+                if (originalContent.includes('Copy JSON')) {
+                    button.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800');
+                } else {
+                    button.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800');
+                }
+            }, 2000);
+        }
+
+        // Show copy error and provide alternative
+        function showCopyError(button, text) {
+            const originalContent = button.innerHTML;
+            button.classList.add('bg-orange-600', 'hover:bg-orange-700');
+            button.classList.remove('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800', 'from-purple-600', 'to-purple-700', 'hover:from-purple-700', 'hover:to-purple-800');
+            button.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>Select JSON</span>
+            `;
+            
+            // Show modal with selectable text
+            showSelectableJsonModal(text);
+            
+            setTimeout(() => {
+                button.innerHTML = originalContent;
+                button.classList.remove('bg-orange-600', 'hover:bg-orange-700');
+                if (originalContent.includes('Copy JSON')) {
+                    button.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800');
+                } else {
+                    button.classList.add('bg-gradient-to-r', 'from-blue-600', 'to-blue-700', 'hover:from-blue-700', 'hover:to-blue-800');
+                }
+            }, 3000);
+        }
+
+        // Show modal with selectable JSON text
+        function showSelectableJsonModal(jsonText) {
+            const modalHtml = `
+                <div id="selectableModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                    <div class="bg-slate-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                        <div class="flex items-center justify-between p-6 border-b border-slate-700">
+                            <div>
+                                <h3 class="text-xl font-semibold text-white">Copy JSON Manually</h3>
+                                <p class="text-slate-400 text-sm">Select all text below and copy with Ctrl+C (Cmd+C on Mac)</p>
+                            </div>
+                            <button onclick="closeSelectableModal()" class="text-slate-400 hover:text-white transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="p-6 max-h-[70vh] overflow-y-auto">
+                            <textarea readonly 
+                                      class="w-full h-96 bg-slate-900 text-slate-300 p-4 rounded-xl text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 border border-slate-600"
+                                      onclick="this.select()"
+                                      onfocus="this.select()">${jsonText}</textarea>
+                        </div>
+                        <div class="flex items-center justify-between p-6 border-t border-slate-700">
+                            <p class="text-sm text-slate-400">💡 Tip: Click the text area to select all, then press Ctrl+C to copy</p>
+                            <button onclick="closeSelectableModal()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium py-2 px-4 rounded-xl transition-all duration-200">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Auto-select the text
+            setTimeout(() => {
+                const textarea = document.querySelector('#selectableModal textarea');
+                if (textarea) {
+                    textarea.focus();
+                    textarea.select();
+                }
+            }, 100);
+        }
+
+        // Close selectable modal
+        function closeSelectableModal() {
+            const modal = document.getElementById('selectableModal');
+            if (modal) {
+                modal.remove();
             }
         }
 
