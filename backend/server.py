@@ -28,7 +28,6 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 
-# Define Models
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
@@ -36,6 +35,25 @@ class StatusCheck(BaseModel):
 
 class StatusCheckCreate(BaseModel):
     client_name: str
+
+# N8N Workflow Models
+class WorkflowNode(BaseModel):
+    name: str
+    type: str
+    parameters: Dict[str, Any] = {}
+    position: List[int] = []
+
+class N8NWorkflow(BaseModel):
+    id: int
+    filename: str
+    title: str
+    description: str
+    active: bool
+    nodes: int
+    node_types: List[str]
+    content: Dict[str, Any]
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
