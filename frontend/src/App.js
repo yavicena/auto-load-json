@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 const App = () => {
   const [workflows, setWorkflows] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewingWorkflow, setViewingWorkflow] = useState(null);
   const [copiedWorkflow, setCopiedWorkflow] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -13,367 +17,53 @@ const App = () => {
     nodes: 0
   });
 
-  // Load workflows from the n8n_workflows folder
+  // Load workflows from the backend API
   useEffect(() => {
     const loadWorkflows = async () => {
       try {
-        // In a real application, this would be an API call
-        // For now, we'll simulate the workflow data
-        const mockWorkflows = [
-          {
-            id: 1,
-            filename: "Email_Automation_Workflow.json",
-            title: "Email Automation Workflow",
-            description: "Automated email scheduling and delivery system",
-            active: true,
-            nodes: 2,
-            content: {
-              "name": "Email Automation Workflow",
-              "nodes": [
-                {
-                  "parameters": {
-                    "triggerTimes": {
-                      "item": [
-                        {
-                          "hour": 9,
-                          "minute": 0
-                        }
-                      ]
-                    }
-                  },
-                  "name": "Schedule Trigger",
-                  "type": "n8n-nodes-base.scheduleTrigger",
-                  "typeVersion": 1,
-                  "position": [240, 300]
-                },
-                {
-                  "parameters": {
-                    "authentication": "oAuth2",
-                    "select": "user",
-                    "user": {
-                      "resource": "user",
-                      "operation": "get"
-                    }
-                  },
-                  "name": "Gmail",
-                  "type": "n8n-nodes-base.gmail",
-                  "typeVersion": 1,
-                  "position": [460, 300]
-                }
-              ],
-              "connections": {
-                "Schedule Trigger": {
-                  "main": [
-                    [
-                      {
-                        "node": "Gmail",
-                        "type": "main",
-                        "index": 0
-                      }
-                    ]
-                  ]
-                }
-              },
-              "active": true,
-              "settings": {},
-              "createdAt": "2024-01-15T10:30:00.000Z",
-              "updatedAt": "2024-01-15T10:30:00.000Z",
-              "id": "1"
-            }
-          },
-          {
-            id: 2,
-            filename: "Slack_Notification_System.json",
-            title: "Slack Notification System",
-            description: "Real-time alerts and notifications via Slack",
-            active: true,
-            nodes: 2,
-            content: {
-              "name": "Slack Notification System",
-              "nodes": [
-                {
-                  "parameters": {
-                    "path": "/webhook/slack",
-                    "options": {}
-                  },
-                  "name": "Webhook",
-                  "type": "n8n-nodes-base.webhook",
-                  "typeVersion": 1,
-                  "position": [240, 300]
-                },
-                {
-                  "parameters": {
-                    "authentication": "oAuth2",
-                    "select": "channel",
-                    "channelId": "C1234567890",
-                    "text": "=Alert: {{$json[\"message\"]}}"
-                  },
-                  "name": "Slack",
-                  "type": "n8n-nodes-base.slack",
-                  "typeVersion": 1,
-                  "position": [460, 300]
-                }
-              ],
-              "connections": {
-                "Webhook": {
-                  "main": [
-                    [
-                      {
-                        "node": "Slack",
-                        "type": "main",
-                        "index": 0
-                      }
-                    ]
-                  ]
-                }
-              },
-              "active": true,
-              "settings": {},
-              "createdAt": "2024-01-15T11:00:00.000Z",
-              "updatedAt": "2024-01-15T11:00:00.000Z",
-              "id": "2"
-            }
-          },
-          {
-            id: 3,
-            filename: "Data_Processing_Pipeline.json",
-            title: "Data Processing Pipeline",
-            description: "Automated data transformation and storage",
-            active: false,
-            nodes: 3,
-            content: {
-              "name": "Data Processing Pipeline",
-              "nodes": [
-                {
-                  "parameters": {
-                    "url": "https://api.example.com/data",
-                    "authentication": "genericCredentialType",
-                    "genericAuthType": "httpBasicAuth",
-                    "options": {}
-                  },
-                  "name": "HTTP Request",
-                  "type": "n8n-nodes-base.httpRequest",
-                  "typeVersion": 1,
-                  "position": [240, 300]
-                },
-                {
-                  "parameters": {
-                    "jsCode": "// Process and transform data\nconst processedData = items.map(item => {\n  return {\n    ...item.json,\n    processed: true,\n    timestamp: new Date().toISOString()\n  };\n});\n\nreturn processedData;"
-                  },
-                  "name": "Code",
-                  "type": "n8n-nodes-base.code",
-                  "typeVersion": 1,
-                  "position": [460, 300]
-                },
-                {
-                  "parameters": {
-                    "operation": "insert",
-                    "table": "processed_data",
-                    "columns": "id, data, processed_at"
-                  },
-                  "name": "MySQL",
-                  "type": "n8n-nodes-base.mySql",
-                  "typeVersion": 1,
-                  "position": [680, 300]
-                }
-              ],
-              "connections": {
-                "HTTP Request": {
-                  "main": [
-                    [
-                      {
-                        "node": "Code",
-                        "type": "main",
-                        "index": 0
-                      }
-                    ]
-                  ]
-                },
-                "Code": {
-                  "main": [
-                    [
-                      {
-                        "node": "MySQL",
-                        "type": "main",
-                        "index": 0
-                      }
-                    ]
-                  ]
-                }
-              },
-              "active": true,
-              "settings": {},
-              "createdAt": "2024-01-15T12:00:00.000Z",
-              "updatedAt": "2024-01-15T12:00:00.000Z",
-              "id": "3"
-            }
-          },
-          {
-            id: 4,
-            filename: "Social_Media_Automation.json",
-            title: "Social Media Automation",
-            description: "Automated social media posting and engagement",
-            active: true,
-            nodes: 2,
-            content: {
-              "name": "Social Media Automation",
-              "nodes": [
-                {
-                  "parameters": {
-                    "feedUrl": "https://example.com/rss",
-                    "options": {}
-                  },
-                  "name": "RSS Feed Read",
-                  "type": "n8n-nodes-base.rssFeedRead",
-                  "typeVersion": 1,
-                  "position": [240, 300]
-                },
-                {
-                  "parameters": {
-                    "authentication": "oAuth1",
-                    "text": "=New blog post: {{$json[\"title\"]}} - {{$json[\"link\"]}}"
-                  },
-                  "name": "Twitter",
-                  "type": "n8n-nodes-base.twitter",
-                  "typeVersion": 1,
-                  "position": [460, 300]
-                }
-              ],
-              "connections": {
-                "RSS Feed Read": {
-                  "main": [
-                    [
-                      {
-                        "node": "Twitter",
-                        "type": "main",
-                        "index": 0
-                      }
-                    ]
-                  ]
-                }
-              },
-              "active": true,
-              "settings": {},
-              "createdAt": "2024-01-15T13:00:00.000Z",
-              "updatedAt": "2024-01-15T13:00:00.000Z",
-              "id": "4"
-            }
-          },
-          {
-            id: 5,
-            filename: "Customer_Support_Workflow.json",
-            title: "Customer Support Workflow",
-            description: "Automated customer support ticket management",
-            active: true,
-            nodes: 4,
-            content: {
-              "name": "Customer Support Workflow",
-              "nodes": [
-                {
-                  "parameters": {
-                    "path": "/webhook/support",
-                    "options": {}
-                  },
-                  "name": "Webhook",
-                  "type": "n8n-nodes-base.webhook",
-                  "typeVersion": 1,
-                  "position": [240, 300]
-                },
-                {
-                  "parameters": {
-                    "conditions": {
-                      "string": [
-                        {
-                          "value1": "={{$json[\"priority\"]}}",
-                          "operation": "equal",
-                          "value2": "high"
-                        }
-                      ]
-                    }
-                  },
-                  "name": "IF",
-                  "type": "n8n-nodes-base.if",
-                  "typeVersion": 1,
-                  "position": [460, 300]
-                },
-                {
-                  "parameters": {
-                    "authentication": "oAuth2",
-                    "select": "channel",
-                    "channelId": "C9876543210",
-                    "text": "=🚨 HIGH PRIORITY TICKET: {{$json[\"subject\"]}}"
-                  },
-                  "name": "Slack Alert",
-                  "type": "n8n-nodes-base.slack",
-                  "typeVersion": 1,
-                  "position": [680, 200]
-                },
-                {
-                  "parameters": {
-                    "subject": "=Ticket Received: {{$json[\"subject\"]}}",
-                    "message": "=Thank you for contacting us. We have received your request and will respond within 24 hours.",
-                    "toEmail": "={{$json[\"email\"]}}"
-                  },
-                  "name": "Send Email",
-                  "type": "n8n-nodes-base.emailSend",
-                  "typeVersion": 1,
-                  "position": [680, 400]
-                }
-              ],
-              "connections": {
-                "Webhook": {
-                  "main": [
-                    [
-                      {
-                        "node": "IF",
-                        "type": "main",
-                        "index": 0
-                      }
-                    ]
-                  ]
-                },
-                "IF": {
-                  "main": [
-                    [
-                      {
-                        "node": "Slack Alert",
-                        "type": "main",
-                        "index": 0
-                      }
-                    ],
-                    [
-                      {
-                        "node": "Send Email",
-                        "type": "main",
-                        "index": 0
-                      }
-                    ]
-                  ]
-                }
-              },
-              "active": true,
-              "settings": {},
-              "createdAt": "2024-01-15T14:00:00.000Z",
-              "updatedAt": "2024-01-15T14:00:00.000Z",
-              "id": "5"
-            }
-          }
-        ];
-
-        setWorkflows(mockWorkflows);
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch(`${BACKEND_URL}/api/workflows`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const workflowData = await response.json();
+        
+        // Transform the data if needed
+        const transformedWorkflows = workflowData.map(workflow => ({
+          id: workflow.id,
+          filename: workflow.filename,
+          title: workflow.title,
+          description: workflow.description,
+          active: workflow.active,
+          nodes: workflow.nodes,
+          node_types: workflow.node_types || [],
+          content: workflow.content,
+          created_at: workflow.created_at,
+          updated_at: workflow.updated_at
+        }));
+        
+        setWorkflows(transformedWorkflows);
         
         // Calculate stats
-        const totalNodes = mockWorkflows.reduce((sum, wf) => sum + wf.nodes, 0);
-        const activeCount = mockWorkflows.filter(wf => wf.active).length;
+        const totalNodes = transformedWorkflows.reduce((sum, wf) => sum + wf.nodes, 0);
+        const activeCount = transformedWorkflows.filter(wf => wf.active).length;
         
         setStats({
-          total: mockWorkflows.length,
+          total: transformedWorkflows.length,
           active: activeCount,
-          inactive: mockWorkflows.length - activeCount,
+          inactive: transformedWorkflows.length - activeCount,
           nodes: totalNodes
         });
+        
       } catch (error) {
         console.error("Error loading workflows:", error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -384,7 +74,10 @@ const App = () => {
   const filteredWorkflows = workflows.filter(workflow =>
     workflow.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     workflow.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    workflow.filename.toLowerCase().includes(searchTerm.toLowerCase())
+    workflow.filename.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (workflow.node_types && workflow.node_types.some(type => 
+      type.toLowerCase().includes(searchTerm.toLowerCase())
+    ))
   );
 
   // Copy workflow JSON to clipboard
@@ -407,6 +100,46 @@ const App = () => {
   const closeModal = () => {
     setViewingWorkflow(null);
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Loading Workflows...</h2>
+          <p className="text-slate-400">Scanning n8n_workflows folder for JSON files</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Error Loading Workflows</h2>
+          <p className="text-slate-400 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2 px-4 rounded-xl transition-all duration-200"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
