@@ -368,12 +368,108 @@
         // Global variables
         let workflows = [];
         let currentViewingWorkflow = null;
+        let selectedDirectoryHandle = null;
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
             setupDragAndDrop();
             updateUI();
+            checkBrowserSupport();
         });
+
+        // Check if browser supports File System Access API
+        function checkBrowserSupport() {
+            if ('showDirectoryPicker' in window) {
+                console.log('File System Access API supported');
+            } else {
+                console.log('File System Access API not supported - fallback to manual selection');
+                // Hide folder selection button if not supported
+                const selectFolderBtns = document.querySelectorAll('[onclick="selectWorkflowFolder()"]');
+                selectFolderBtns.forEach(btn => {
+                    btn.style.display = 'none';
+                });
+            }
+        }
+
+        // Select workflow folder using File System Access API
+        async function selectWorkflowFolder() {
+            if (!('showDirectoryPicker' in window)) {
+                alert('Your browser does not support automatic folder access. Please use the "Load Files" button to select JSON files manually.');
+                return;
+            }
+
+            try {
+                // Request directory access
+                selectedDirectoryHandle = await window.showDirectoryPicker({
+                    mode: 'read',
+                    id: 'n8n-workflows'
+                });
+
+                // Show folder status
+                document.getElementById('folderStatus').style.display = 'block';
+                document.getElementById('folderPath').textContent = `Connected to: ${selectedDirectoryHandle.name}`;
+                
+                // Show refresh button
+                document.getElementById('refreshBtn').style.display = 'flex';
+                document.getElementById('refreshBtn').disabled = false;
+
+                // Load workflows from folder
+                await loadWorkflowsFromFolder();
+
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Error selecting folder:', error);
+                    alert('Error accessing folder: ' + error.message);
+                }
+            }
+        }
+
+        // Load workflows from selected folder
+        async function loadWorkflowsFromFolder() {
+            if (!selectedDirectoryHandle) {
+                alert('Please select a folder first');
+                return;
+            }
+
+            try {
+                // Clear existing workflows
+                workflows = [];
+
+                let fileCount = 0;
+                for await (const [name, fileHandle] of selectedDirectoryHandle.entries()) {
+                    if (fileHandle.kind === 'file' && name.endsWith('.json')) {
+                        try {
+                            const file = await fileHandle.getFile();
+                            const text = await file.text();
+                            const workflowData = JSON.parse(text);
+                            addWorkflow(name, workflowData);
+                            fileCount++;
+                        } catch (error) {
+                            console.error(`Error loading ${name}:`, error);
+                        }
+                    }
+                }
+
+                if (fileCount === 0) {
+                    alert('No JSON files found in the selected folder');
+                } else {
+                    console.log(`Loaded ${fileCount} workflow files`);
+                }
+
+                updateUI();
+
+            } catch (error) {
+                console.error('Error loading workflows from folder:', error);
+                alert('Error loading workflows: ' + error.message);
+            }
+        }
+
+        // Refresh workflows from folder
+        async function refreshWorkflowFolder() {
+            if (selectedDirectoryHandle) {
+                await loadWorkflowsFromFolder();
+            }
+        }
 
         // Setup drag and drop functionality
         function setupDragAndDrop() {
