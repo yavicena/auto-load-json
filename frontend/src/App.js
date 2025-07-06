@@ -360,13 +360,31 @@ const App = () => {
         </div>
 
         {/* Empty State */}
-        {filteredWorkflows.length === 0 && (
+        {filteredWorkflows.length === 0 && !loading && (
           <div className="text-center py-12">
             <svg className="w-16 h-16 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <h3 className="text-lg font-semibold text-slate-400 mb-2">No workflows found</h3>
-            <p className="text-slate-500">Try adjusting your search terms or add some workflows to get started.</p>
+            {workflows.length === 0 ? (
+              <div>
+                <h3 className="text-lg font-semibold text-slate-400 mb-2">No workflows found</h3>
+                <p className="text-slate-500 mb-4">Add JSON workflow files to the <code className="bg-slate-700 px-2 py-1 rounded text-sm">n8n_workflows</code> folder to get started.</p>
+                <div className="bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 max-w-md mx-auto">
+                  <p className="text-sm text-slate-400 mb-2">Expected folder structure:</p>
+                  <div className="text-left text-sm text-slate-300 font-mono">
+                    <div>📁 /app/n8n_workflows/</div>
+                    <div className="ml-4">📄 workflow1.json</div>
+                    <div className="ml-4">📄 workflow2.json</div>
+                    <div className="ml-4">📄 ...</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-lg font-semibold text-slate-400 mb-2">No matching workflows</h3>
+                <p className="text-slate-500">Try adjusting your search terms or clear the search to see all workflows.</p>
+              </div>
+            )}
           </div>
         )}
       </div>
