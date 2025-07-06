@@ -55,6 +55,92 @@ class N8NWorkflow(BaseModel):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
+@api_router.get("/workflows", response_model=List[N8NWorkflow])
+async def get_workflows():
+    """
+    Dynamically load and return all N8N workflow JSON files from the n8n_workflows folder
+    """
+    try:
+        workflows = []
+        workflows_dir = Path("/app/n8n_workflows")
+        
+        # Check if directory exists
+        if not workflows_dir.exists():
+            logger.warning(f"n8n_workflows directory not found at {workflows_dir}")
+            return []
+        
+        # Find all JSON files in the directory
+        json_files = glob.glob(str(workflows_dir / "*.json"))
+        
+        if not json_files:
+            logger.info("No JSON files found in n8n_workflows directory")
+            return []
+        
+        for idx, json_file in enumerate(json_files, 1):
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    workflow_data = json.load(f)
+                
+                # Extract filename without extension
+                filename = os.path.basename(json_file)
+                title = workflow_data.get('name', filename.replace('.json', '').replace('_', ' ').title())
+                
+                # Extract node information
+                nodes = workflow_data.get('nodes', [])
+                node_count = len(nodes)
+                node_types = []
+                
+                # Extract node types for description
+                for node in nodes:
+                    node_type = node.get('type', '').split('.')[-1] if node.get('type') else 'Unknown'
+                    if node_type not in node_types:
+                        node_types.append(node_type)
+                
+                # Generate description based on node types
+                description = f"Workflow with {node_count} nodes"
+                if node_types:
+                    main_types = [t for t in node_types if t not in ['scheduleTrigger', 'webhook']]
+                    if main_types:
+                        description += f" including {', '.join(main_types[:3])}"
+                    if len(main_types) > 3:
+                        description += f" and {len(main_types) - 3} more"
+                
+                # Determine if workflow is active
+                active = workflow_data.get('active', True)
+                
+                # Extract timestamps
+                created_at = workflow_data.get('createdAt')
+                updated_at = workflow_data.get('updatedAt')
+                
+                workflow = N8NWorkflow(
+                    id=idx,
+                    filename=filename,
+                    title=title,
+                    description=description,
+                    active=active,
+                    nodes=node_count,
+                    node_types=node_types,
+                    content=workflow_data,
+                    created_at=created_at,
+                    updated_at=updated_at
+                )
+                
+                workflows.append(workflow)
+                
+            except json.JSONDecodeError as e:
+                logger.error(f"Error parsing JSON file {json_file}: {e}")
+                continue
+            except Exception as e:
+                logger.error(f"Error processing file {json_file}: {e}")
+                continue
+        
+        logger.info(f"Successfully loaded {len(workflows)} workflows from n8n_workflows directory")
+        return workflows
+        
+    except Exception as e:
+        logger.error(f"Error loading workflows: {e}")
+        raise HTTPException(status_code=500, detail=f"Error loading workflows: {str(e)}")
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
